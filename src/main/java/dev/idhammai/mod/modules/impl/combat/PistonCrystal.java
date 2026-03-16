@@ -58,7 +58,7 @@ extends Module {
     private final SliderSetting range = this.add(new SliderSetting("Range", 4.0, 1.0, 8.0));
     private final BooleanSetting fire = this.add(new BooleanSetting("Fire", true));
     private final BooleanSetting switchPos = this.add(new BooleanSetting("Switch", false));
-    private final BooleanSetting onlyGround = this.add(new BooleanSetting("SelfGround", true));
+    private final BooleanSetting onlyGround = this.add(new BooleanSetting("SelfGround", false));
     private final BooleanSetting onlyStatic = this.add(new BooleanSetting("MovingPause", true));
     private final SliderSetting updateDelay = this.add(new SliderSetting("PlaceDelay", 100, 0, 500));
     private final SliderSetting posUpdateDelay = this.add(new SliderSetting("PosUpdateDelay", 500, 0, 1000));
@@ -220,8 +220,8 @@ if (predict.getValue()) {
         if (MovementUtil.isMoving() && onlyStatic) {
             return true;
         }
-        if (onGround && onlyGround) {
-            return true;
+        if (onGround && onlyGround && !mc.player.isCrawling()) {
+    return true;
         }
         if (this.findClass(PistonBlock.class) == -1) {
             return true;
@@ -239,10 +239,13 @@ if (predict.getValue()) {
     }
 
     private boolean checkCrystal2(BlockPos pos) {
-        for (Entity entity : BlockUtil.getEntities(new Box(pos))) {
-            if (!(entity instanceof EndCrystalEntity) || !EntityUtil.getEntityPos(entity).equals((Object)pos)) continue;
-            return true;
+       for (Entity entity : mc.world.getEntities()) {
+        if (entity instanceof EndCrystalEntity) {
+            if (entity.getBlockPos().equals(pos)) {
+                return true;
+            }
         }
+    }
         return false;
     }
 
@@ -268,9 +271,7 @@ return new BlockPos(x, y, z);
     }
 
     private void getPos(BlockPos pos, Direction i) {
-        if (!BlockUtil.canPlaceCrystal(pos.offset(i)) && !this.checkCrystal2(pos.offset(i))) {
-            return;
-        }
+        if (!BlockUtil.canPlaceCrystal(pos.offset(i)) && !checkCrystal2(pos.offset(i))) return;
         this.getPos(pos.offset(i, 3), i, pos);
         this.getPos(pos.offset(i, 3).up(), i, pos);
         int offsetX = pos.offset(i).getX() - pos.getX();
@@ -288,6 +289,7 @@ return new BlockPos(x, y, z);
     }
 
     private void getPos(BlockPos pos, Direction facing, BlockPos oPos) {
+        if (mc.world.isAir(pos.down()) && mc.world.isAir(pos.down(2))) return;
         if (this.switchPos.getValue() && this.bestPos != null && this.bestPos.equals((Object)pos) && PistonCrystal.mc.world.isAir(this.bestPos)) {
             return;
         }
