@@ -112,7 +112,7 @@ import net.minecraft.world.World;
 public class PacketMine
 extends Module {
     public static PacketMine INSTANCE;
-    public static BlockPos secondPos;
+    public BlockPos secondPos;
     public static double progress;
     private final FadeUtils animationTime = new FadeUtils(1000L);
     private final FadeUtils secondAnim = new FadeUtils(1000L);
@@ -340,7 +340,7 @@ extends Module {
             slot = PacketMine.mc.player.getInventory().selectedSlot;
         }
         this.breakFinalTime = this.getBreakTime(this.breakPos, slot);
-        progress = (double)this.mineTimer.getMs() / this.breakFinalTime;
+        progress = (double)this.mineTimer.getPassedTimeMs() / this.breakFinalTime;
         if (this.isAir(this.breakPos)) {
             this.breakNumber = 0;
         }
@@ -426,7 +426,7 @@ extends Module {
                 }
             }
             this.breakNumber = 0;
-        } else if (this.canPlaceCrystal(this.breakPos.up()) && this.shouldCrystal() && (this.placeTimer.passedMs(this.placeDelay.getValue()) ? (this.checkDamage.getValue() ? (double)this.mineTimer.getMs() / this.breakFinalTime >= this.crystalDamage.getValue() && !this.placeCrystal() : !this.placeCrystal()) : this.startPacket)) {
+        } else if (this.canPlaceCrystal(this.breakPos.up()) && this.shouldCrystal() && (this.placeTimer.passedMs(this.placeDelay.getValue()) ? (this.checkDamage.getValue() ? (double)this.mineTimer.getPassedTimeMs() / this.breakFinalTime >= this.crystalDamage.getValue() && !this.placeCrystal() : !this.placeCrystal()) : this.startPacket)) {
             return;
         }
         if (this.waitPlace.getValue()) {
@@ -467,6 +467,7 @@ extends Module {
 mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(slot));
 
 mc.interactionManager.attackBlock(this.breakPos, direction);
+mc.interactionManager.cancelBlockBreaking();
 mc.interactionManager.updateBlockBreakingProgress(this.breakPos, direction);
 mc.player.swingHand(Hand.MAIN_HAND);
 mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(old));
@@ -634,7 +635,7 @@ this.startTime.reset();
         if (this.breakPos != null && this.preferWeb.getValue() && BlockUtil.getBlock(this.breakPos) == Blocks.COBWEB) {
             return;
         }
-        if (this.breakPos != null && this.preferHead.getValue() && PacketMine.mc.player.isCrawling() && EntityUtil.getPlayerPos(true).up().equals((Object)this.breakPos)) {
+        if (this.breakPos != null && this.preferHead.getValue() && PacketMine.isCrawling() && EntityUtil.getPlayerPos(true).up().equals((Object)this.breakPos)) {
             return;
         }
         if (BlockUtil.getClickSideStrict(pos) == null) {
@@ -644,6 +645,7 @@ this.startTime.reset();
             return;
         }
         this.breakPos = pos;
+        secondPos = pos.up();
         this.breakNumber = 0;
         this.startPacket = false;
         ghost = false;
@@ -767,7 +769,7 @@ this.startTime.reset();
                 }
             }
             if (this.breakPos != null) {
-                progress = (double)this.mineTimer.getMs() / this.breakFinalTime;
+                progress = (double)this.mineTimer.getPassedTimeMs() / this.breakFinalTime;
                 this.animationTime.setLength((long)this.breakFinalTime);
                 ease = this.animationTime.ease(this.ease.getValue());
                 if (PacketMine.unbreakable(this.breakPos)) {
