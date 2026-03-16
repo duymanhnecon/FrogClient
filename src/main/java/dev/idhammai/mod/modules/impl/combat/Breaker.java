@@ -60,6 +60,11 @@ extends Module {
 
     @EventListener
     public void onUpdate(UpdateEvent event) {
+        if (mc.player == null || mc.world == null) return;
+
+if (mc.player.isUsingItem()) {
+    return;
+}
         if (CevBreaker.INSTANCE.isOn() && this.cevPause.getValue()) {
             return;
         }
@@ -80,7 +85,10 @@ extends Module {
      * WARNING - void declaration
      */
     private void doBreak(PlayerEntity player) {
-        BlockPos pos = EntityUtil.getEntityPos((Entity)player, true);
+        if (PacketMine.getBreakPos() != null) {
+    return;
+}
+BlockPos pos = EntityUtil.getEntityPos((Entity)player, true);
         if (PacketMine.getBreakPos() != null && !PacketMine.getBreakPos().equals((Object)PacketMine.secondPos) && PacketMine.secondPos != null && !Breaker.mc.world.isAir(PacketMine.secondPos) && this.forceDouble.getValue()) {
             return;
         }
@@ -181,6 +189,9 @@ extends Module {
     }
 
     private boolean canBreak(BlockPos pos) {
+        if (mc.player.getEyePos().distanceTo(pos.toCenterPos()) > this.range.getValue()) {
+    return false;
+}
         return this.isObsidian(pos) && (BlockUtil.getClickSideStrict(pos) != null || pos.equals((Object)PacketMine.getBreakPos())) && (!pos.equals((Object)PacketMine.secondPos) || !(Breaker.mc.player.getMainHandStack().getItem() instanceof PickaxeItem) && !PacketMine.INSTANCE.autoSwitch.getValue() && !PacketMine.INSTANCE.noGhostHand.getValue());
     }
 

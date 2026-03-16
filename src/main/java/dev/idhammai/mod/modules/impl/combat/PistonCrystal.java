@@ -73,6 +73,14 @@ extends Module {
     private final SliderSetting fireMaxStage = this.add(new SliderSetting("FireMaxStage", 2, 1, 10));
     private final BooleanSetting inventory = this.add(new BooleanSetting("InventorySwap", true));
     private final BooleanSetting debug = this.add(new BooleanSetting("Debug", false));
+private final BooleanSetting airPlace = this.add(new BooleanSetting("AirPlace", true));
+private final BooleanSetting strict = this.add(new BooleanSetting("StrictPlace", true));
+private final BooleanSetting targetHead = this.add(new BooleanSetting("TargetHead", true));
+private final BooleanSetting targetBody = this.add(new BooleanSetting("TargetBody", true));
+private final BooleanSetting targetFeet = this.add(new BooleanSetting("TargetFeet", true));
+private final BooleanSetting torchPower = this.add(new BooleanSetting("RedstoneTorch", true));
+private final BooleanSetting predict = this.add(new BooleanSetting("Predict", true));
+private final SliderSetting predictTicks = this.add(new SliderSetting("PredictTicks", 2, 0, 5));
     private final Timer timer = new Timer();
     private final Timer crystalTimer = new Timer();
     public BlockPos bestPos = null;
@@ -155,7 +163,13 @@ extends Module {
         if (this.check(this.onlyStatic.getValue(), !PistonCrystal.mc.player.isOnGround(), this.onlyGround.getValue())) {
             return;
         }
-        BlockPos pos = EntityUtil.getEntityPos((Entity)this.target, true);
+        BlockPos pos;
+
+if (predict.getValue()) {
+    pos = getPredictedPos(this.target);
+} else {
+    pos = EntityUtil.getEntityPos((Entity)this.target, true);
+}
         if (!PistonCrystal.mc.player.isUsingItem() || this.eatingBreak.getValue()) {
             if (this.checkCrystal(pos.up(0))) {
                 CombatUtil.attackCrystal(pos.up(0), this.rotate.getValue(), true);
@@ -178,8 +192,17 @@ extends Module {
             this.stage = 0;
             this.getDistance = 100.0;
             this.getPos = false;
-            this.getBestPos(pos.up(2));
-            this.getBestPos(pos.up());
+            if(targetHead.getValue()){
+                this.getBestPos(pos.up(2));
+            }
+
+            if(targetBody.getValue()){
+                this.getBestPos(pos.up(1));
+            }
+
+            if(targetFeet.getValue()){
+                this.getBestPos(pos);
+            }
         }
         if (!this.timer.passedMs(this.updateDelay.getValueInt())) {
             return;
@@ -198,9 +221,6 @@ extends Module {
             return true;
         }
         if (onGround && onlyGround) {
-            return true;
-        }
-        if (this.findBlock(Blocks.REDSTONE_BLOCK) == -1) {
             return true;
         }
         if (this.findClass(PistonBlock.class) == -1) {
@@ -233,7 +253,13 @@ extends Module {
         }
         return null;
     }
+private BlockPos getPredictedPos(PlayerEntity player) {int ticks = predictTicks.getValueInt();
+double x = player.getX() + player.getVelocity().x * ticks;
+double y = player.getY() + player.getVelocity().y * ticks;
+double z = player.getZ() + player.getVelocity().z * ticks;
 
+return new BlockPos(x, y, z);
+}
     private void getBestPos(BlockPos pos) {
         for (Direction i : Direction.values()) {
             if (i == Direction.DOWN || i == Direction.UP) continue;
@@ -307,7 +333,7 @@ extends Module {
                     AutoPush.pistonFacing(facing);
                     int piston = this.findClass(PistonBlock.class);
                     this.doSwap(piston);
-                    BlockUtil.placeBlock(pos, false, this.pistonPacket.getValue());
+                    BlockUtil.placeBlock(pos, this.airPlace.getValue(), this.pistonPacket.getValue(),this.strict.getValue());
                     if (this.inventory.getValue()) {
                         this.doSwap(piston);
                         EntityUtil.syncInventory();
